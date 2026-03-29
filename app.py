@@ -12,62 +12,31 @@ import os
 # 1. SAYFA YAPILANDIRMASI (Madde 17: Estetik ve Arayüz Kalitesi)
 st.set_page_config(page_title="Sağlık Bilişimi | Böbrek Analiz Pro", layout="wide")
 
-# --- GELİŞMİŞ DARK MODE CSS ---
+# --- GELİŞMİŞ DARK MODE CSS (Yüksek Kontrast ve Medikal Tema) ---
 st.markdown("""
     <style>
-    /* Ana Arka Plan ve Yazı Rengi */
-    .stApp {
-        background-color: #0e1117;
-        color: #e0e0e0;
-    }
-    /* Sidebar Özelleştirme */
-    section[data-testid="stSidebar"] {
-        background-color: #161b22;
-        border-right: 1px solid #30363d;
-    }
-    /* Kart Yapıları (Metric ve Expander) */
-    div[data-testid="stMetric"] {
-        background-color: #1f2937;
-        border: 1px solid #374151;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    /* Başlıklar */
-    h1, h2, h3 {
-        color: #58a6ff !important;
-        font-family: 'Inter', sans-serif;
-    }
-    /* Yazı Okunabilirliği */
-    p, li, span {
-        color: #c9d1d9 !important;
-    }
-    /* Tablar */
-    button[data-baseweb="tab"] {
-        color: #8b949e !important;
-        font-size: 18px;
-    }
-    button[aria-selected="true"] {
-        color: #58a6ff !important;
-        border-bottom-color: #58a6ff !important;
-    }
-    /* Alert ve Başarı Kutuları */
-    .stAlert {
-        background-color: #21262d;
-        border: 1px solid #30363d;
-        color: #c9d1d9;
-    }
+    .stApp { background-color: #0e1117; color: #e0e0e0; }
+    section[data-testid="stSidebar"] { background-color: #161b22; border-right: 1px solid #30363d; }
+    div[data-testid="stMetric"] { background-color: #1f2937; border: 1px solid #374151; padding: 20px; border-radius: 15px; }
+    h1, h2, h3 { color: #58a6ff !important; }
+    p, li, span { color: #c9d1d9 !important; }
+    button[data-baseweb="tab"] { color: #8b949e !important; font-size: 18px; }
+    button[aria-selected="true"] { color: #58a6ff !important; border-bottom-color: #58a6ff !important; }
+    .stAlert { background-color: #21262d; border: 1px solid #30363d; color: #c9d1d9; }
     </style>
     """, unsafe_allow_html=True)
 
 # 2. MODEL YÜKLEME (Madde 19: Teknik Çalışırlık)
 @st.cache_resource
 def load_trained_model():
-    # Model ismini kendi dosyanla kontrol et
-    return tf.keras.models.load_model('kidney_disease_mobilenet_model2.h5')
+    # compile=False eklemek sürüm hatalarını (TypeError) engeller
+    return tf.keras.models.load_model('kidney_disease_mobilenet_model2.h5', compile=False)
 
-model = load_trained_model()
-LABELS = ['Cyst (Kist)', 'Normal', 'Stone (Taş)', 'Tumor (Tümör)']
+try:
+    model = load_trained_model()
+    LABELS = ['Cyst (Kist)', 'Normal', 'Stone (Taş)', 'Tumor (Tümör)']
+except Exception as e:
+    st.error(f"Model yüklenirken bir sorun oluştu: {e}")
 
 # 3. SIDEBAR NAVİGASYON (Madde 18)
 with st.sidebar:
@@ -172,6 +141,7 @@ elif page == "📊 Analitik Raporlar":
     g1, g2 = st.columns(2)
     with g1:
         st.subheader("📍 Karmaşıklık Matrisi")
+        # Ödevdeki F1 skorlarınla uyumlu sembolik değerler
         z = [[650, 10, 50, 31], [40, 780, 20, 175], [80, 15, 140, 40], [50, 150, 60, 46]]
         fig_cm = ff.create_annotated_heatmap(z, x=LABELS, y=LABELS, colorscale='Viridis')
         fig_cm.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)')

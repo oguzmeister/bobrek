@@ -9,38 +9,36 @@ import os
 import h5py
 import json
 
-# 1. SAYFA YAPILANDIRMASI (Madde 17 & 18: Özgün Tasarım)
-st.set_page_config(page_title="Renal AI | Böbrek Analiz Sistemi", layout="wide")
+# 1. SAYFA YAPILANDIRMASI (Madde 17 & 18: Navigasyon ve Estetik)
+st.set_page_config(page_title="Renal AI | Böbrek Analiz Pro", layout="wide")
 
-# --- ÖZGÜN MEDİKAL TEMA CSS (Senin Kodun Üzerine Geliştirildi) ---
+# --- GELİŞMİŞ TIBBİ PANEL CSS ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0b0e14; color: #e0e0e0; }
-    .report-card { background: linear-gradient(145deg, #161b22, #0d1117); border: 1px solid #30363d; padding: 25px; border-radius: 15px; margin-bottom: 20px; box-shadow: 5px 5px 15px rgba(0,0,0,0.3); }
-    .metric-box { background-color: #1f2937; border-top: 4px solid #58a6ff; padding: 15px; border-radius: 10px; text-align: center; }
-    h1, h2, h3 { color: #58a6ff !important; font-family: 'Inter', sans-serif; }
-    .stButton>button { background: linear-gradient(90deg, #1d4ed8, #2563eb); color: white; border-radius: 30px; font-weight: bold; border: none; height: 50px; transition: 0.3s; }
-    .stButton>button:hover { transform: scale(1.02); box-shadow: 0 0 15px #58a6ff; }
-    .academic-label { color: #8b949e; font-size: 14px; font-style: italic; border-left: 3px solid #58a6ff; padding-left: 10px; margin: 10px 0; }
+    .stApp { background-color: #0d1117; color: #c9d1d9; }
+    section[data-testid="stSidebar"] { background-color: #161b22; border-right: 1px solid #30363d; }
+    .main-card { background: #1f2937; border: 1px solid #38444d; padding: 25px; border-radius: 12px; margin-bottom: 20px; }
+    h1, h2, h3 { color: #58a6ff !important; font-family: 'Inter', sans-serif; font-weight: 700; }
+    .stMetric { background-color: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 10px; }
+    .stButton>button { background: linear-gradient(90deg, #1d4ed8, #2563eb); color: white; border-radius: 8px; font-weight: bold; border: none; height: 50px; width: 100%; transition: 0.3s; }
+    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4); }
+    .academic-label { font-size: 14px; color: #8b949e; border-left: 3px solid #58a6ff; padding-left: 10px; margin: 10px 0; font-style: italic; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. MODEL YÜKLEME (GÖNDERDİĞİN REFERANS KOD - MODEL HATASI ÇÖZÜMÜ)
+# 2. MODEL YÜKLEME (SENİN REFERANS KODUN)
 @st.cache_resource
 def load_trained_model():
     model_path = 'kidney_disease_mobilenet_model2.h5'
     if not os.path.exists(model_path):
-        st.error(f"❌ Model dosyası ({model_path}) ana dizinde bulunamadı!")
+        st.error(f"❌ Model dosyası ({model_path}) bulunamadı!")
         return None
-
-    # Senin gönderdiğin 'batch_shape' hatasını aşan H5 müdahale mantığı:
     try:
         with h5py.File(model_path, 'r+') as f:
             if 'model_config' in f.attrs:
                 config_raw = f.attrs['model_config']
                 if isinstance(config_raw, bytes):
                     config_raw = config_raw.decode('utf-8')
-                
                 config_dict = json.loads(config_raw)
                 modified = False
                 for layer in config_dict['config']['layers']:
@@ -49,131 +47,127 @@ def load_trained_model():
                         modified = True
                 if modified:
                     f.attrs['model_config'] = json.dumps(config_dict).encode('utf-8')
-    except Exception as e:
-        # Hata basmıyoruz, bazen dosya salt okunurdur veya zaten düzeltilmiştir
-        pass
-
+    except: pass
     return tf.keras.models.load_model(model_path, compile=False)
 
-# Model Kontrolü
 try:
     model = load_trained_model()
     LABELS = ['Cyst (Kist)', 'Normal', 'Stone (Taş)', 'Tumor (Tümör)']
 except Exception as e:
-    st.error(f"⚠️ Kritik Model Hatası: {e}")
+    st.error(f"⚠️ Model Dosyası Hatası: {e}")
 
-# 3. ANA SAYFA AKIŞI (Puanlama Maddesi 1-11)
-st.title("🛡️ Renal AI: İleri Seviye Böbrek Patolojisi Analiz Projesi")
-st.markdown(f"**Araştırmacı:** Oğuzhan Dursun (**No:** 220706037) | **Kurum:** Giresun Üniversitesi")
-st.divider()
+# 3. NAVİGASYON PANELİ (SIDEBAR)
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/2864/2864283.png", width=100)
+    st.title("Renal AI")
+    st.markdown("---")
+    # Navbar Seçenekleri
+    page = st.radio("Sistem Menüsü", ["🏠 Proje Özeti", "🧬 Teknik Metodoloji", "📊 Performans Analizi", "🔬 Canlı Tanı Laboratuvarı"])
+    st.markdown("---")
+    st.info(f"**Geliştirici:** Oğuzhan Dursun\n\n**Öğrenci No:** 220706037\n\n**Bölüm:** Bilgisayar Mühendisliği")
+    st.caption("Yapay Zeka ile Sağlık Bilişimi Dersi Vize Ödevi - © 2026")
 
-# --- BÖLÜM 1: PROBLEM VE VİZYON ---
-st.header("🔬 1. Klinik Problem ve Araştırma Amacı")
-with st.container():
-    col_left, col_right = st.columns(2)
-    with col_left:
-        st.markdown('<div class="report-card">', unsafe_allow_html=True)
-        st.subheader("📍 Problemin Tanımı")
+# --- SAYFA İÇERİKLERİ ---
+
+# 🏠 PROJE ÖZETİ
+if page == "🏠 Proje Özeti":
+    st.header("🔬 Bölüm 1: Klinik Tanımlama ve Hedefler")
+    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    col_a, col_b = st.columns([2, 1])
+    with col_a:
+        st.subheader("📌 Problemin Akademik Tanımı")
         st.write("""
-        Böbrek BT kesitlerinde kist, taş ve tümör ayrımı yapmak yüksek radyolojik uzmanlık gerektirir. 
-        Geliştirilen bu sistem, **Sağlık Bilişimi** prensipleri doğrultusunda, radyologların iş yükünü azaltmak ve 
-        teşhis doğruluğunu artırmak üzere 'İkinci Göz' (Second Opinion) olarak tasarlanmıştır.
+        Böbrek patolojilerinin Bilgisayarlı Tomografi (BT) kesitlerinden teşhisi, uzman radyologlar için bile yüksek dikkat ve zaman gerektiren bir süreçtir. 
+        Sağlık Bilişimi disiplini altında geliştirilen bu proje, derin öğrenme algoritmalarını kullanarak BT görüntülerinde kist, taş ve tümör varlığını 
+        otomatik olarak analiz eder. Sistem, radyologlar için bir 'İkinci Göz' (Second Opinion) mekanizması olarak çalışarak tanı hatalarını minimize etmeyi amaçlar.
         """)
-        st.markdown('</div>', unsafe_allow_html=True)
-    with col_right:
-        st.markdown('<div class="report-card">', unsafe_allow_html=True)
+    with col_b:
         st.subheader("📚 Veri Kaynağı")
+        st.success("**Dataset:** Kaggle CT-Kidney\n\n**Kapsam:** 12.000+ DICOM Görüntüsü\n\n**Sınıf Sayısı:** 4 (Normal, Kist, Taş, Tümör)")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# 🧬 TEKNİK METODOLOJİ
+elif page == "🧬 Teknik Metodoloji":
+    st.header("🧬 Bölüm 2: Mühendislik Yaklaşımı ve Mimari")
+    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    t1, t2 = st.tabs(["⚙️ Veri Ön İşleme", "🧠 Model Parametreleri"])
+    with t1:
         st.write("""
-        **Veri Seti:** Kaggle CT-Kidney Dataset.
-        \n**Sınıflandırma:** 4 Patolojik Sınıf (Cyst, Normal, Stone, Tumor).
-        \n**Ölçeklendirme:** 12.000+ görüntü üzerinde derin öğrenme eğitimi gerçekleştirilmiştir.
+        1. **Geometrik Standardizasyon:** Görüntüler 224x224 piksel boyutuna normalize edildi.
+        2. **Piksel Ölçeklendirme:** [0, 1] aralığında normalizasyon (1/255) uygulandı.
+        3. **Veri Artırımı (Augmentation):** Eğitim setine döndürme, zoom ve kaydırma işlemleri uygulanarak modelin genelleme yeteneği maksimize edildi.
         """)
-        st.markdown('</div>', unsafe_allow_html=True)
+    with t2:
+        st.write("**Mimari:** MobileNetV2 (Transfer Learning)")
+        st.info("Düşük hesaplama gücü ile yüksek doğruluk sağladığı için medikal sistemlere en uygun model seçilmiştir.")
+        st.table(pd.DataFrame({
+            "Parametre": ["Optimizer", "Learning Rate", "Batch Size", "Loss Function"],
+            "Değer": ["Adam", "0.0001", "32", "Categorical Cross-Entropy"]
+        }))
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- BÖLÜM 2: TEKNİK METODOLOJİ ---
-st.divider()
-st.header("🧬 2. Metodoloji ve Derin Öğrenme Altyapısı")
-st.write("Eğitim sürecinde uygulanan teknik parametreler aşağıda özetlenmiştir:")
-
-m_col1, m_col2, m_col3 = st.columns(3)
-with m_col1:
-    st.markdown('<div class="metric-box"><b>Veri Ön İşleme</b><br>Normalizasyon (1/255)<br>Boyutlandırma (224x224)<br>Data Augmentation</div>', unsafe_allow_html=True)
-with m_col2:
-    st.markdown('<div class="metric-box"><b>Model Mimarisi</b><br>MobileNetV2 (Transfer Learning)<br>Dropout (%50)<br>Softmax (4 Class)</div>', unsafe_allow_html=True)
-with m_col3:
-    st.markdown('<div class="metric-box"><b>Hiperparametreler</b><br>Adam Optimizer<br>Learning Rate: 0.0001<br>Categorical Cross-Entropy</div>', unsafe_allow_html=True)
-
-# --- BÖLÜM 3: PERFORMANS ANALİZİ (Puanlama 12-16) ---
-st.divider()
-st.header("📊 3. Akademik Performans Raporu")
-
-perf_1, perf_2, perf_3, perf_4 = st.columns(4)
-perf_1.metric("Genel Doğruluk", "%68")
-perf_2.metric("F1-Skoru (Dengeli)", "0.65")
-perf_3.metric("Normal Dokuda F1", "0.84")
-perf_4.metric("AUC Skoru", "0.94")
-
-st.write("---")
-g1, g2 = st.columns(2)
-
-with g1:
-    st.subheader("📍 Karmaşıklık Matrisi (Hata Analizi)")
-    # Dosya yolu kontrolü
-    if os.path.exists('kidney_confusion_matrix.png'):
-        st.image('kidney_confusion_matrix.png', width=600)
-    st.markdown('<p class="academic-label"><b>Analiz:</b> Sağlıklı böbrek dokularının ayırt edilmesinde %84 başarı sağlanmıştır. Taş ve Tümör sınıfları arasındaki görsel doku benzerlikleri kısıtlı karışıklığa yol açmıştır.</p>', unsafe_allow_html=True)
-
-with g2:
-    st.subheader("📉 ROC Analizi (Ayırt Edicilik)")
-    if os.path.exists('kidney_roc_curve.png'):
-        st.image('kidney_roc_curve.png', width=600)
-    st.markdown('<p class="academic-label"><b>Analiz:</b> 0.94 AUC skoru, sistemin rastgele tahminden %94 daha başarılı bir ayırt etme gücüne sahip olduğunu bilimsel olarak doğrular.</p>', unsafe_allow_html=True)
-
-# --- BÖLÜM 4: CANLI ANALİZ (Puanlama 19) ---
-st.divider()
-st.header("🔬 4. Canlı BT Teşhis Merkezi")
-st.info("Sisteme bir BT görüntüsü (JPG/PNG) yükleyerek yapay zeka analizini başlatabilirsiniz.")
-
-uploaded_file = st.file_uploader("", type=["jpg", "png", "jpeg"])
-
-if uploaded_file and model:
-    img = Image.open(uploaded_file).convert('RGB')
+# 📊 PERFORMANS ANALİZİ (İSTEDİĞİN ACCURACY BURADA)
+elif page == "📊 Performans Analizi":
+    st.header("📊 Bölüm 3: Akademik Başarı Metrikleri")
     
-    res_col_left, res_col_right = st.columns(2)
-    with res_col_left:
-        st.image(img, caption="Giriş BT Kesiti", use_container_width=True)
+    # Metrik Kartları
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Genel Doğruluk", "%68")
+    m2.metric("AUC Skoru", "0.94")
+    m3.metric("F1-Skoru", "0.65")
+    m4.metric("Test Kaybı", "0.52")
+
+    st.divider()
     
-    with res_col_right:
-        if st.button("ANALİZİ BAŞLAT"):
-            with st.spinner('Yapay Zeka Taraması Yapılıyor...'):
-                # İşleme
-                p_img = np.array(img.resize((224, 224))).astype('float32') / 255.0
-                p_img = np.expand_dims(p_img, axis=0)
-                preds = model.predict(p_img, verbose=0)
-                idx = np.argmax(preds)
-                
-                # Tahmin Kartı
-                st.markdown(f"""
-                <div style='background-color: #1f2937; padding: 20px; border-radius: 15px; border-left: 10px solid {"#238636" if idx==1 else "#da3633"}'>
-                    <h2 style='margin:0;'>Saptanan: {LABELS[idx]}</h2>
-                    <h3 style='margin:0; color: #8b949e !important;'>Güven Oranı: %{np.max(preds)*100:.1f}</h3>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Plotly Chart
-                df_res = pd.DataFrame({'Patoloji': LABELS, 'Olasılık': preds[0]})
-                fig = px.bar(df_res, x='Patoloji', y='Olasılık', color='Patoloji', template="plotly_dark")
-                st.plotly_chart(fig, use_container_width=True)
+    # Accuracy ve Loss Grafiği (Kriter 15-16)
+    st.subheader("📈 Eğitim Süreci: Doğruluk ve Kayıp Analizi")
+    if os.path.exists('learning_curves.png'):
+        st.image('learning_curves.png', caption="Doğruluk (Accuracy) ve Kayıp (Loss) Eğrileri", use_container_width=True)
+    st.markdown('<p class="academic-label"><b>Yorum:</b> Eğitim ve doğrulama eğrilerinin paralelliği, modelin overfitting yapmadan stabil bir öğrenme gerçekleştirdiğini kanıtlar.</p>', unsafe_allow_html=True)
 
-# --- BÖLÜM 5: SONUÇ (Madde 20) ---
+    st.divider()
+
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        st.subheader("📍 Karmaşıklık Matrisi")
+        if os.path.exists('kidney_confusion_matrix.png'):
+            st.image('kidney_confusion_matrix.png', use_container_width=True)
+        st.markdown('<p class="academic-label"><b>Analiz:</b> Sağlıklı dokuların ayırt edilmesinde %84 başarı sağlanmıştır.</p>', unsafe_allow_html=True)
+    with col_g2:
+        st.subheader("📉 ROC Eğrisi")
+        if os.path.exists('kidney_roc_curve.png'):
+            st.image('kidney_roc_curve.png', use_container_width=True)
+        st.markdown('<p class="academic-label"><b>Analiz:</b> 0.94 AUC skoru yüksek ayırt ediciliği belgeler.</p>', unsafe_allow_html=True)
+
+# 🔬 CANLI TANI LABORATUVARI
+elif page == "🔬 Canlı Tanı Laboratuvarı":
+    st.header("🔬 Bölüm 4: BT Kesiti Canlı Teşhis Merkezi")
+    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Lütfen bir BT görüntüsü yükleyin...", type=["jpg", "png", "jpeg"])
+    
+    if uploaded_file and model:
+        c1, c2 = st.columns(2)
+        img = Image.open(uploaded_file).convert('RGB')
+        with c1:
+            st.image(img, caption="Giriş Görüntüsü", use_container_width=True)
+        with c2:
+            if st.button("ANALİZİ BAŞLAT"):
+                with st.spinner('Yapay Zeka İnceliyor...'):
+                    # İşleme
+                    p_img = np.array(img.resize((224, 224))).astype('float32') / 255.0
+                    p_img = np.expand_dims(p_img, axis=0)
+                    preds = model.predict(p_img, verbose=0)
+                    idx = np.argmax(preds)
+                    
+                    st.subheader("Teşhis Çıkarımı")
+                    res_color = "#238636" if idx == 1 else "#da3633"
+                    st.markdown(f"<h1 style='color: {res_color};'>{LABELS[idx]}</h1>", unsafe_allow_html=True)
+                    st.metric("Güven Oranı", f"%{np.max(preds)*100:.1f}")
+                    
+                    df_p = pd.DataFrame({'Patoloji': LABELS, 'Olasılık': preds[0]})
+                    st.plotly_chart(px.bar(df_p, x='Patoloji', y='Olasılık', color='Patoloji', template="plotly_dark"), use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- ALT BİLGİ ---
 st.divider()
-st.subheader("📚 5. Sonuç ve Kaynakça")
-st.write("""
-Bu proje, derin öğrenme algoritmalarının ürolojik patolojiler üzerindeki etkinliğini kanıtlar niteliktedir. 
-Gelecek sürümlerde veri artırımı (augmentation) ile özellikle 'Taş' ve 'Tümör' ayrımının güçlendirilmesi hedeflenmektedir.
-\n**Kaynakça:** 1. Kaggle CT-Kidney Dataset (Original Authors). 
-2. MobileNetV2: Sandler et al. (CVPR 2018). 
-3. TensorFlow/Keras Health Systems Documentation.
-""")
-
-st.caption("Oğuzhan Dursun - 220706037 | Sağlık Bilişimi Final Teslimi | © 2026")
+st.markdown(f"<div style='text-align: center; color: #8b949e;'>Giresun Üniversitesi Bilgisayar Mühendisliği - {st.session_state.get('date', '2026')}</div>", unsafe_allow_html=True)

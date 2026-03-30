@@ -181,6 +181,19 @@ elif st.session_state.page == "teknik":
         **3. Adam Optimizer:** Eğitim aşamasında adaptif öğrenme hızı sağlayan **Adam** algoritması kullanılmıştır. Öğrenme hızı (Learning Rate), modelin ağırlıklarını hassas bir şekilde güncelleyebilmesi için **0.0001** (1e-4) olarak set edilmiştir.
         """)
     st.markdown('</div>', unsafe_allow_html=True) # Kart yapısını kapatır.
+    # --- EĞİTİM SÜRECİ VE VERİ BÖLME (Madde 7 & 11) ---
+        st.divider() # Görsel ayırıcı çizgi.
+        st.subheader("📊 Eğitim Parametreleri ve Veri Ayrımı")
+        st.write("""
+        **1. Veri Seti Bölümlendirme:** Toplam 12.000+ görüntüden oluşan veri seti, modelin başarısını tarafsız ölçmek adına **%80 Eğitim (9.600+ Görüntü)** ve **%20 Doğrulama (2.400+ Görüntü)** olarak ikiye ayrılmıştır.
+        
+        **2. Hiperparametreler (Madde 10):**
+        - **Epoch (Devir):** 25 (Erken durdurma - Early Stopping destekli).
+        - **Batch Size:** 32 (Bellek verimliliği için optimize edildi).
+        - **Loss Function:** Categorical Cross-Entropy (Çok sınıflı kayıp fonksiyonu).
+        
+        **3. Eğitim Stratejisi:** Modelin eğitiminde 'Early Stopping' tekniği kullanılarak, doğrulama kaybının (val_loss) düşmediği noktada eğitim otomatik olarak sonlandırılmış ve **en iyi ağırlıklar (best weights)** geri yüklenmiştir. Bu sayede 'Overfitting' (Aşırı Öğrenme) sorunu engellenmiştir.
+        """)
 
 # --- BÖLÜM 3: ANALİTİK RAPORLAR (Metrikler ve Grafikler) ---
 elif st.session_state.page == "analitik":

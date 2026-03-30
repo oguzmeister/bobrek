@@ -185,12 +185,18 @@ elif st.session_state.page == "analitik": # Aktif sayfa analitik ise bu blok ça
     m3.metric("F1-Skoru", "0.65") # F1 skorunu gösterir.
     m4.metric("Duyarlılık", "0.88") # Duyarlılık değerini gösterir.
     st.divider() # Ayırıcı.
-    if os.path.exists('learning_curves.png'): st.image('learning_curves.png', caption="Eğitim Grafikleri", width=1100) # Kayıtlı eğitim grafiği varsa yükler.
+    if os.path.exists('learning_curves.png'): st.image('learning_curves.png', caption="Eğitim Grafikleri", width=1100),st.info("""
+        **Yorum:** Accuracy grafiğinde eğitim ve doğrulama eğrilerinin birbirine yakın seyretmesi, modelin genelleme yeteneğinin yüksek olduğunu ve 'aşırı öğrenme' (overfitting) sorununun minimize edildiğini gösterir.
+        """) # Kayıtlı eğitim grafiği varsa yükler.
     g1, g2 = st.columns(2) # Matris ve eğri için iki sütun oluşturur.
     with g1:
-        if os.path.exists('kidney_confusion_matrix.png'): st.image('kidney_confusion_matrix.png', use_container_width=True) # Karmaşıklık matrisini gösterir.
+        if os.path.exists('kidney_confusion_matrix.png'): st.image('kidney_confusion_matrix.png', use_container_width=True),st.write("""
+            **Yorum:** Karmaşıklık matrisi incelendiğinde, modelin özellikle 'Normal' kesitleri yüksek doğrulukla ayırt ettiği; ancak 'Cyst' ve 'Tumor' gibi benzer doku özelliklerine sahip sınıflar arasında sınırlı bir karışıklık yaşadığı gözlemlenmiştir.
+            """) # Karmaşıklık matrisini gösterir.
     with g2:
-        if os.path.exists('kidney_roc_curve.png'): st.image('kidney_roc_curve.png', use_container_width=True) # ROC eğrisini gösterir.
+        if os.path.exists('kidney_roc_curve.png'): st.image('kidney_roc_curve.png', use_container_width=True),st.write("""
+            **Yorum:** 0.94'lük AUC değeri, modelin her bir patolojiyi rastgele tahminden çok daha üstün bir başarıyla (mükemmele yakın) sınıflandırabildiğini kanıtlamaktadır.
+            """) # ROC eğrisini gösterir.
 
 # --- BÖLÜM 4: CANLI TANI MERKEZİ ---
 elif st.session_state.page == "tani": # Aktif sayfa tanı merkezi ise bu blok çalışır.

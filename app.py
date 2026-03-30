@@ -132,8 +132,12 @@ if st.session_state.page == "vizyon":
     with c2:
         st.subheader("📚 Veri Seti")
         # st.info: Önemli bilgileri vurgulu bir kutu içinde gösterir.
-        st.info("**Kaynak:** Kaggle CT-Kidney\n\n**Sınıf:** 4 (Normal, Kist, Taş, Tümör)")
-    st.markdown('</div>', unsafe_allow_html=True) # Kart tasarımını kapatır.
+        st.info("""
+                **Kaynak:** [Kaggle CT-Kidney](https://www.kaggle.com/datasets/nazmul0087/ct-kidney-dataset-normal-cyst-tumor-stone)
+                
+                **Sınıf:** 4 (Normal, Kist, Taş, Tümör)
+                """)
+        st.markdown('</div>', unsafe_allow_html=True) # Kart tasarımını kapatır.
 
 # --- BÖLÜM 2: TEKNİK ALTYAPI ---
 elif st.session_state.page == "teknik":

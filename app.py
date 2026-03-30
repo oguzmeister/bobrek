@@ -128,7 +128,12 @@ if st.session_state.page == "vizyon":
     c1, c2 = st.columns([2, 1]) # İçerik için biri geniş, biri dar iki sütun açar.
     with c1:
         st.subheader("📌 Problemin Tanımı")
-        st.write("Böbrek patolojilerinin BT kesitlerinden teşhisi radyologlar için zaman alıcıdır. Renal AI, karar destek mekanizması olarak teşhis doğruluğunu artırır.")
+        st.write("Günümüzde böbrek hastalıklarının teşhisinde **Bilgisayarlı Tomografi (BT)** kesitlerinin manuel incelenmesi, radyologlar üzerinde ciddi bir bilişsel yük oluşturmaktadır. 
+        Her bir hastaya ait yüzlerce kesit görüntüsünün titizlikle taranması; yorgunluk, dikkat dağınıklığı ve sınırlı zaman gibi faktörlere bağlı olarak **tıbbi hata (diagnostic error)** riskini beraberinde getirmektedir. 
+        Özellikle erken evre kist, taş ve tümör oluşumlarının birbirine benzer görsel doku özellikleri göstermesi, teşhis sürecini karmaşıklaştırmaktadır.
+        
+        Böbrek Analiz Pro, Sağlık Bilişimi ve Derin Öğrenme prensiplerini kullanarak bu soruna dijital bir çözüm sunar. Sistem, BT görüntülerini piksel düzeyinde analiz ederek patolojik anomali potansiyeli taşıyan bölgeleri saniyeler içinde sınıflandırır. 
+        Bu çalışma, bir doktorun yerini almaktan ziyade, hekimlerin karar verme süreçlerini hızlandıran ve teşhis doğruluğunu valide eden bir **Klinik Karar Destek Mekanizması** olarak tasarlanmıştır.")
     with c2:
         st.subheader("📚 Veri Seti")
         # st.info: Önemli bilgileri vurgulu bir kutu içinde gösterir.

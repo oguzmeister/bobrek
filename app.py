@@ -54,7 +54,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # 2. MODEL YÜKLEME VE VERSİYON UYUMLULUK ÇÖZÜMÜ (Madde 19)
-# @st.cache_resource: Modeli bir kez belleğe yükler; böylece her buton tıklamasında model tekrar yüklenip sistem donmaz.
+# @st.cache_resource: Modeli bir kez belleğe yükler; her sayfa yenilemede sistemi yormaz.
 @st.cache_resource 
 def load_trained_model():
     model_path = 'kidney_disease_mobilenet_model2.h5' # Projenin ana dizinindeki model dosyasının ismi.
@@ -71,30 +71,31 @@ def load_trained_model():
     # CompatibleInputLayer: Orijinal InputLayer'ı miras alarak (inheritance) hatalı parametreleri onarır.
     class CompatibleInputLayer(InputLayer):
         def __init__(self, *args, **kwargs): # Katman oluşturulurken gönderilen tüm argümanları yakalar.
-            # 'batch_shape' anahtarı Keras 2'ye aittir; eğer varsa;
+            # 'batch_shape' anahtarı Keras 2'ye aittir; eğer yapılandırma içinde varsa;
             if 'batch_shape' in kwargs:
-                # .pop: 'batch_shape'i siler ve değerini Keras 3'ün tanıdığı 'batch_input_shape'e aktarır.
+                # .pop: 'batch_shape' parametresini siler ve değerini Keras 3 uyumlu 'batch_input_shape'e atar.
                 kwargs['batch_input_shape'] = kwargs.pop('batch_shape')
-            # super().__init__: Onarılmış parametrelerle orijinal Keras katmanını başlatır.
+            # super().__init__: Onarılmış parametrelerle temel Keras katmanını başlatır.
             super().__init__(*args, **kwargs)
 
     try:
         # tf.keras.models.load_model: Kayıtlı h5 dosyasını derin öğrenme motoruna yükler.
-        # compile=False: Modelin eğitim aşamasındaki (optimizer gibi) ayarlarını yüklemez, sadece tahmine odaklanır.
-        # custom_objects: Sisteme "Hatalı InputLayer yerine benim düzelttiğim sınıfı kullan" talimatını verir.
+        # compile=False: Modelin eğitim geçmişini yüklemeyerek dosya yapısı kaynaklı hataları önler.
+        # custom_objects: Sisteme "Standart InputLayer yerine benim düzelttiğim sınıfı kullan" talimatını verir.
         return tf.keras.models.load_model(
             model_path, 
             compile=False, 
             custom_objects={'InputLayer': CompatibleInputLayer}
         )
     except Exception as e:
-        # Yükleme sırasında beklenmedik bir hata oluşursa bunu ekranda gösterir.
+        # TANI: "file signature not found" hatası genellikle GitHub'a yüklenen dosyanın bozuk olmasıdır.
         st.error(f"⚠️ Model Yükleme Hatası: {e}")
+        st.info("💡 Çözüm: .h5 dosyasını GitHub'dan silip, bilgisayarınızdaki sağlam orijinal dosyayı tekrar yükleyin (Sürükle-bırak yapabilirsiniz).")
         return None
 
 # Fonksiyonu çağırarak modeli RAM'e (belleğe) alır.
 model = load_trained_model()
-# LABELS: Modelin tahmin ettiği sayısal indeksleri (0,1,2,3) insan dilindeki hastalıklara eşler.
+# LABELS: Modelin sayısal çıktılarını (0,1,2,3) anlaşılır hastalık isimlerine eşler.
 LABELS = ['Cyst (Kist)', 'Normal', 'Stone (Taş)', 'Tumor (Tümör)']
 
 # 3. ÜST NAVBAR (Yatay Navigasyon Menüsü)
@@ -102,7 +103,7 @@ st.title("🛡️ Renal AI: İleri Seviye Böbrek Analiz Sistemi")
 # st.columns(4): Sayfanın üst kısmına butonlar için 4 eşit genişlikte sütun oluşturur.
 menu_col1, menu_col2, menu_col3, menu_col4 = st.columns(4) 
 
-# Butonlara tıklandığında 'st.session_state' (oturum durumu) güncellenerek sayfa içeriği değişir.
+# Butonlara tıklandığında 'st.session_state.page' değişkeni güncellenir.
 with menu_col1:
     if st.button("🏠 PROJE VİZYONU"): st.session_state.page = "vizyon" # Vizyon sayfasına yönlendirir.
 with menu_col2:
@@ -114,7 +115,7 @@ with menu_col4:
 
 # Eğer kullanıcı henüz bir seçim yapmadıysa varsayılan olarak "vizyon" sayfasını açar.
 if 'page' not in st.session_state: st.session_state.page = "vizyon"
-st.divider() # Navbar ile içerik arasına ince bir çizgi çeker.
+st.divider() # Navbar ile içerik arasına ayırıcı çizgi çeker.
 
 # ==============================================================================
 # 4. SAYFA İÇERİKLERİ VE MANTIK AKIŞI
@@ -123,42 +124,42 @@ st.divider() # Navbar ile içerik arasına ince bir çizgi çeker.
 # --- BÖLÜM 1: VİZYON ---
 if st.session_state.page == "vizyon":
     st.header("🏥 Bölüm 1: Problemin Tanımı ve Akademik Önemi")
-    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # Tasarlanan kart yapısını başlatır.
+    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # Kart tasarımını başlatır.
     c1, c2 = st.columns([2, 1]) # İçerik için biri geniş, biri dar iki sütun açar.
     with c1:
         st.subheader("📌 Problemin Tanımı")
         st.write("Böbrek patolojilerinin BT kesitlerinden teşhisi radyologlar için zaman alıcıdır. Renal AI, karar destek mekanizması olarak teşhis doğruluğunu artırır.")
     with c2:
         st.subheader("📚 Veri Seti")
-        # st.info: Önemli bilgileri mavi bir kutu içinde gösterir.
+        # st.info: Önemli bilgileri vurgulu bir kutu içinde gösterir.
         st.info("**Kaynak:** Kaggle CT-Kidney\n\n**Sınıf:** 4 (Normal, Kist, Taş, Tümör)")
-    st.markdown('</div>', unsafe_allow_html=True) # Kart yapısını kapatır.
+    st.markdown('</div>', unsafe_allow_html=True) # Kart tasarımını kapatır.
 
 # --- BÖLÜM 2: TEKNİK ALTYAPI ---
 elif st.session_state.page == "teknik":
     st.header("🧬 Bölüm 2: Mühendislik ve Model Altyapısı")
     st.markdown('<div class="medical-card">', unsafe_allow_html=True)
     # Modelin teknik mimarisi hakkında özet bilgiler sunar.
-    st.write("- **Model:** MobileNetV2 (Transfer Learning - Hazır eğitilmiş ağırlıklar kullanıldı).")
-    st.write("- **Ön İşleme:** 1/255 Normalizasyon (Pikselleri 0-1 arasına çeker) & 224x224 Resize.")
-    st.write("- **Optimizasyon:** Adam Optimizer (Öğrenme hızı: 0.0001 olarak ayarlandı).")
+    st.write("- **Model:** MobileNetV2 (Transfer Learning mimarisi kullanıldı).")
+    st.write("- **Ön İşleme:** 1/255 Normalizasyon (Pikselleri standartlaştırır) & 224x224 Resize.")
+    st.write("- **Optimizasyon:** Adam Optimizer (Öğrenme hızı: 0.0001).")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- BÖLÜM 3: ANALİTİK RAPORLAR (Metrikler ve Grafikler) ---
 elif st.session_state.page == "analitik":
     st.header("📊 Bölüm 3: Model Başarım Metrikleri")
-    m1, m2, m3, m4 = st.columns(4) # Sayısal başarı metrikleri için 4 kolon.
-    m1.metric("Doğruluk (Acc)", "%68") # Toplam doğru tahmin oranı.
-    m2.metric("AUC Skoru", "0.94")     # Modelin sınıfları birbirinden ayırma kabiliyeti.
-    m3.metric("F1-Skoru", "0.65")      # Kesinlik ve duyarlılığın harmonik ortalaması.
-    m4.metric("Duyarlılık", "0.88")    # Hastaları (pozitifleri) bulma başarısı.
+    m1, m2, m3, m4 = st.columns(4) # Puanlama kriteri olan 4 temel metrik sütunu.
+    m1.metric("Doğruluk (Acc)", "%68") # Genel doğru tahmin oranı.
+    m2.metric("AUC Skoru", "0.94")     # Modelin ayırt edicilik gücü.
+    m3.metric("F1-Skoru", "0.65")      # Başarının harmonik ortalaması.
+    m4.metric("Duyarlılık", "0.88")    # Patolojileri kaçırmama oranı.
     st.divider()
     
-    # os.path.exists: Metrik kodundan gelen PNG dosyalarının varlığını kontrol eder.
+    # os.path.exists: Metrik kodundan üretilen PNG dosyalarını kontrol eder.
     if os.path.exists('learning_curves.png'): 
         st.image('learning_curves.png', caption="Eğitim Grafikleri (Accuracy/Loss)", width=1100)
     
-    g1, g2 = st.columns(2) # Karmaşıklık matrisi ve ROC eğrisi için yan yana iki alan.
+    g1, g2 = st.columns(2) # Matris ve ROC eğrisi için yan yana iki alan.
     with g1:
         if os.path.exists('kidney_confusion_matrix.png'): 
             st.image('kidney_confusion_matrix.png', caption="Karmaşıklık Matrisi (Hata Analizi)", use_container_width=True)
@@ -170,61 +171,61 @@ elif st.session_state.page == "analitik":
 elif st.session_state.page == "tani":
     st.header("🔬 Bölüm 4: BT Kesiti Canlı Analiz Modülü")
     st.markdown('<div class="medical-card">', unsafe_allow_html=True)
-    # st.file_uploader: Kullanıcının yerel cihazından BT (CT) görüntüsünü sisteme yüklemesini sağlar.
+    # st.file_uploader: Kullanıcının yerel cihazından BT görüntüsünü yüklemesini sağlar.
     up_file = st.file_uploader("Analiz edilecek BT görüntüsünü yükleyiniz...", type=["jpg", "png", "jpeg"])
     
-    if up_file: # Eğer dosya başarıyla yüklendiyse;
-        col_img, col_analysis = st.columns([1, 1], gap="large") # Resim ve analizi yan yana koyar.
-        img = Image.open(up_file).convert('RGB') # Yüklenen dosyayı açar ve RGB kanalına çevirir (standartlaştırma).
+    if up_file: # Eğer dosya yüklendiyse;
+        col_img, col_analysis = st.columns([1, 1], gap="large") # Resim ve analizi yan yana hizalar.
+        img = Image.open(up_file).convert('RGB') # Yüklenen dosyayı RGB kanalına çevirerek standartlaştırır.
         
         with col_img:
             st.markdown("### 🖼️ Giriş BT Kesiti")
-            st.image(img, caption="Yüklenen Ham Görüntü", width=420) # Genişliği sabitleyerek arayüz kaymasını engeller.
+            st.image(img, caption="Yüklenen Ham Görüntü", width=420) # Genişliği sabitleyerek kaymayı engeller.
         
         with col_analysis:
             st.markdown("### 🤖 Analiz Sonuçları")
-            if model is not None: # Model başarıyla belleğe yüklendiyse;
+            if model is not None: # Model belleğe başarılı yüklendiyse;
                 if st.button("🚀 ANALİZİ BAŞLAT"): # Kullanıcı "Analiz Et" butonuna bastığında;
-                    with st.spinner('Yapay Zeka Taraması Yapılıyor...'): # İşlem sırasında bekleme animasyonu gösterir.
+                    with st.spinner('Yapay Zeka Taraması Yapılıyor...'): # İşlem sırasında animasyon gösterir.
                         
                         # --- GÖRÜNTÜ ÖN İŞLEME (PREPROCESSING) ---
-                        # img.resize: Resmi modelin eğitildiği standart boyuta (224x224) getirir.
-                        # np.array / 255.0: Piksel değerlerini 0-255 arasından 0-1 arasına (float32) çeker.
+                        # img.resize: Resmi modelin beklediği boyuta (224x224) getirir.
+                        # np.array / 255.0: Piksel değerlerini 0-1 arasına normalize eder.
                         p_img = np.array(img.resize((224, 224))).astype('float32') / 255.0
                         
-                        # np.expand_dims: Modelin beklediği (1, 224, 224, 3) şekline (batch boyutu) getirir.
+                        # np.expand_dims: Modelin beklediği batch formatına (1, 224, 224, 3) getirir.
                         p_img = np.expand_dims(p_img, axis=0) 
                         
                         # --- TAHMİN (INFERENCE) ---
-                        # model.predict: Model, resimdeki patoloji olasılıklarını bir dizi olarak hesaplar.
+                        # model.predict: Model, resimdeki sınıflar için olasılık skorlarını hesaplar.
                         preds = model.predict(p_img, verbose=0) 
                         
-                        # np.argmax: Olasılık dizisindeki (Örn: [0.1, 0.8, 0.05, 0.05]) en yüksek değerin indeksini bulur.
+                        # np.argmax: Olasılık dizisindeki en yüksek değerin indeksini bulur.
                         idx = np.argmax(preds)                 
                         
                         # --- SONUÇ RAPORLAMA ---
-                        # res_color: Sonuca göre dinamik renk seçer (Normal ise yeşil, değilse kırmızı).
+                        # res_color: Sonuca göre dinamik renk seçer (Normal=Yeşil, Patoloji=Kırmızı).
                         res_color = "#238636" if idx == 1 else "#da3633"
                         st.markdown(f"""
                             <div style="border-left: 10px solid {res_color}; padding: 20px; background-color: #1f2937; border-radius: 12px; margin-top:0;">
                                 <h2 style="margin:0; color: white !important;">Teşhis: {LABELS[idx]}</h2>
                                 <h3 style="margin:0; color: #8b949e !important;">Güven Oranı: %{np.max(preds)*100:.1f}</h3>
                             </div>
-                        """, unsafe_allow_html=True) # HTML kodunu ekrana güvenli bir şekilde basar.
+                        """, unsafe_allow_html=True) # HTML kodunu ekrana basar.
                         
                         # --- GRAFİKSEL GÖSTERİM ---
-                        # pd.DataFrame: Olasılıkları grafik kütüphanesinin anlayacağı tablo yapısına sokar.
+                        # pd.DataFrame: Olasılıkları tablo yapısına sokarak grafiğe hazırlar.
                         df_p = pd.DataFrame({'Patoloji': LABELS, 'Olasılık': preds[0]})
                         
                         # px.bar: Sınıf olasılıklarını interaktif bir sütun grafiği olarak çizer.
                         fig = px.bar(df_p, x='Patoloji', y='Olasılık', color='Patoloji', height=300, template="plotly_dark")
                         fig.update_layout(showlegend=False, margin=dict(l=20, r=20, t=10, b=10))
-                        st.plotly_chart(fig, use_container_width=True) # Hazırlanan grafiği sayfaya yerleştirir.
+                        st.plotly_chart(fig, use_container_width=True) # Grafiği sayfaya yerleştirir.
             else:
-                st.error("Model yüklenemedi. Lütfen sistem yöneticisiyle iletişime geçin.")
+                st.error("Model yüklenemedi. Lütfen .h5 dosyasını GitHub'a tekrar yüklemeyi deneyin.")
     st.markdown('</div>', unsafe_allow_html=True) # Kart yapısını kapatır.
 
 # 5. ALT BİLGİ (Madde 20: Akademik Kimlik)
-st.divider() # Sayfanın en altına ince bir çizgi çeker.
-# HTML ile sayfa altına geliştirici bilgileri ve akademik künye eklenir.
+st.divider() # Sayfa sonuna ayırıcı çizgi ekler.
+# Geliştirici bilgileri ve akademik künyeyi en alta yerleştirir.
 st.markdown(f"<div style='text-align: center; color: #8b949e;'><b>Geliştirici:</b> Oğuzhan Dursun - 220706037 | <b>Ders:</b> Yapay Zeka ile Sağlık Bilişimi Vize Ödevi - 2026</div>", unsafe_allow_html=True)

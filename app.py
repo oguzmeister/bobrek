@@ -144,7 +144,7 @@ if st.session_state.page == "vizyon":
         st.subheader("📚 Veri Seti")
         # st.info: Önemli bilgileri vurgulu bir kutu içinde gösterir.
         st.info("""
-                **Kaynak:** [Kaggle CT-Kidney](https://www.kaggle.com/datasets/nazmul0087/ct-kidney-dataset-normal-cyst-tumor-and-stone)
+                **Kaynakça:** [Kaggle CT-Kidney](https://www.kaggle.com/datasets/nazmul0087/ct-kidney-dataset-normal-cyst-tumor-and-stone)
                 
                 **Sınıf:** 4 (Normal, Kist, Taş, Tümör)
                 """)

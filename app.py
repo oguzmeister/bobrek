@@ -6,32 +6,42 @@ import pandas as pd               # Tahmin olasılıklarını tablo yapısına d
 import plotly.express as px       # Tahmin sonuçlarını interaktif sütun grafiklerine dönüştürmek için.
 import os                         # Dosya yolları, dizin kontrolü ve dosya varlık sorgulaması için.
 
-# 1. SAYFA YAPILANDIRMASI (Madde 17, 18 & 19: Estetik ve Teknik Çalışırlık)
-st.set_page_config(page_title="Böbrek Analiz Pro", layout="wide") # Sayfa başlığını ve geniş ekran modunu ayarlar.
+# 1. SAYFA YAPILANDIRMASI (Madde 17 & 18: Estetik ve Gezinme)
+st.set_page_config(page_title="Böbrek Analiz Pro", layout="wide") # Tarayıcı sekme başlığını ve sayfa yerleşimini geniş mod olarak ayarlar.
 
-# --- GELİŞMİŞ TIBBİ PANEL CSS (Görsel Tasarım ve Kullanılabilirlik) ---
+# --- GELİŞMİŞ TIBBİ PANEL CSS (BOŞLUKLAR DÜZELTİLDİ) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0d1117; color: #c9d1d9; } /* Uygulama arka plan rengini koyu tema yapar. */
+    .stApp { background-color: #0d1117; color: #c9d1d9; } 
+    
+    /* Üst menü (Navbar) için görsel stil düzenlemeleri */
     div[data-testid="stHorizontalBlock"] {
         background-color: #161b22;
         padding: 10px;
         border-radius: 15px;
         border: 1px solid #30363d;
         margin-bottom: 30px;
-    } /* Navigasyon barı için özel çerçeve ve gölge ayarları. */
+    }
+    
+    /* İçeriklerin içine yerleştiği tıbbi kart yapısı */
     .medical-card {
         background-color: #161b22;
         border: 1px solid #30363d;
         padding: 25px;
         border-radius: 12px;
         margin-bottom: 20px;
-    } /* İçeriklerin içine yerleştiği tıbbi kart tasarımı. */
+    }
+    
+    /* Kart başlıklarının (h1, h2, h3) üst boşluklarını sıfırlayarak hizalamayı düzeltir */
     .medical-card h1, .medical-card h2, .medical-card h3 {
         margin-top: 0px !important;
         padding-top: 0px !important;
-    } /* Kart başlıklarının üst boşluklarını sıfırlayarak hizalamayı düzeltir. */
-    h1, h2, h3 { color: #58a6ff !important; font-family: 'Inter', sans-serif; font-weight: 700; } /* Başlık renkleri. */
+    }
+    
+    /* Başlıkların rengini mavi tonlarına çeker ve yazı tipini belirler */
+    h1, h2, h3 { color: #58a6ff !important; font-family: 'Inter', sans-serif; font-weight: 700; }
+    
+    /* Streamlit butonlarının genel görünümünü modern ve degrade geçişli yapar */
     .stButton>button {
         background: linear-gradient(90deg, #1d4ed8, #2563eb);
         color: white;
@@ -41,127 +51,171 @@ st.markdown("""
         height: 55px;
         width: 100%;
         transition: 0.4s;
-    } /* Modern ve degrade geçişli buton tasarımı. */
-    .stButton>button:hover { transform: scale(1.01); box-shadow: 0 5px 15px rgba(88, 166, 255, 0.4); } /* Buton hover efekti. */
+    }
+    
+    /* Fare butona geldiğinde hafif büyüme ve parlama efekti verir */
+    .stButton>button:hover { transform: scale(1.01); box-shadow: 0 5px 15px rgba(88, 166, 255, 0.4); }
     </style>
-    """, unsafe_allow_html=True) # HTML ve CSS kodlarını uygulamaya enjekte eder.
+    """, unsafe_allow_html=True) # CSS kodlarının Streamlit tarafından işlenmesini sağlar.
 
-# 2. MODEL YÜKLEME VE VERSİYON UYUMLULUK ÇÖZÜMÜ (Madde 9: Model Mimarisi)
-@st.cache_resource # Modelin bellekte tutulmasını sağlayarak performansı artırır.
+# 2. MODEL YÜKLEME VE VERSİYON UYUMLULUK ÇÖZÜMÜ (Madde 19)
+@st.cache_resource # Modelin belleğe bir kez alınmasını sağlar, her sayfa değişiminde tekrar yükleme yapmaz.
 def load_trained_model():
-    model_path = 'kidney_disease_mobilenet_model2.h5' # Eğitilmiş model dosyasının yolu.
-    if not os.path.exists(model_path): # Dosya kontrolü yapar.
-        st.error(f"❌ Model dosyası bulunamadı!") # Dosya yoksa uyarı verir.
-        return None # Boş döner.
+    model_path = 'kidney_disease_mobilenet_model2.h5' # Yüklenecek model dosyasının tam adı.
+    if not os.path.exists(model_path): # Eğer belirtilen isimde bir dosya klasörde yoksa:
+        st.error(f"❌ Model dosyası ({model_path}) bulunamadı!") # Kullanıcıya dosyanın eksik olduğunu bildirir.
+        return None # Fonksiyonu sonlandırır.
 
-    from tensorflow.keras.layers import InputLayer # Keras katman sınıfını içe aktarır.
-    class CompatibleInputLayer(InputLayer): # Yeni Keras sürümleri için uyumluluk katmanı.
-        def __init__(self, *args, **kwargs): # Yapıcı metod.
-            if 'batch_shape' in kwargs: # Eski parametre ismini kontrol eder.
-                kwargs['batch_input_shape'] = kwargs.pop('batch_shape') # Yeni isme dönüştürür.
-            super().__init__(*args, **kwargs) # Üst sınıfı başlatır.
+    from tensorflow.keras.layers import InputLayer # Modelin giriş katmanı tipini içeri aktarır.
+    class CompatibleInputLayer(InputLayer): # Yeni Keras sürümlerinde değişen parametre isimleri için köprü görevi görür.
+        def __init__(self, *args, **kwargs): # Katman başlatıldığında:
+            if 'batch_shape' in kwargs: # Eğer eski sürümden kalan 'batch_shape' varsa:
+                kwargs['batch_input_shape'] = kwargs.pop('batch_shape') # Onu yeni sürümün beklediği isme dönüştürür.
+            super().__init__(*args, **kwargs) # Standart katman özelliklerini korur.
 
     try:
         return tf.keras.models.load_model(
             model_path, 
             compile=False, 
             custom_objects={'InputLayer': CompatibleInputLayer}
-        ) # Modeli özel katman tanımıyla beraber yükler.
-    except Exception as e: # Hata durumunda:
-        st.error(f"⚠️ Model Yükleme Hatası: {e}") # Hatayı gösterir.
-        return None # Boş döner.
+        ) # Modeli derlemeden (inference için) ve uyumluluk katmanını kullanarak yükler.
+    except Exception as e: # Eğer dosya bozuksa veya yüklenemiyorsa hata yakalar:
+        st.error(f"⚠️ Model Yükleme Hatası: {e}") # Hata detayını ekrana yazdırır.
+        return None # Boş değer döndürür.
 
-model = load_trained_model() # Fonksiyonu çağırarak modeli yükler.
-LABELS = ['Cyst (Kist)', 'Normal', 'Stone (Taş)', 'Tumor (Tümör)'] # Sınıf etiketleri.
+model = load_trained_model() # Yukarıdaki fonksiyonu çağırarak modeli 'model' değişkenine atar.
+LABELS = ['Cyst (Kist)', 'Normal', 'Stone (Taş)', 'Tumor (Tümör)'] # Modelin tahmin edeceği sınıfların listesi.
 
-# 3. ÜST NAVBAR (Madde 18: Gezinme Kolaylığı)
-st.title("🛡️ Böbrek Analiz Pro: İleri Seviye Böbrek Analiz Sistemi") # Uygulama başlığı.
-menu_col1, menu_col2, menu_col3, menu_col4 = st.columns(4) # Menü butonları için 4 sütun.
+# 3. ÜST NAVBAR (Navigasyon Menüsü)
+st.title("🛡️ Böbrek Analiz Pro: İleri Seviye Böbrek Analiz Sistemi") # Ana uygulama başlığı.
+menu_col1, menu_col2, menu_col3, menu_col4 = st.columns(4) # Menü butonlarını yan yana dizmek için 4 sütun oluşturur.
 
-with menu_col1: # Proje Vizyonu butonu.
-    if st.button("🏠 PROJE VİZYONU"): st.session_state.page = "vizyon" # Sayfa durumunu günceller.
-with menu_col2: # Teknik Altyapı butonu.
-    if st.button("🧠 TEKNİK ALTYAPI"): st.session_state.page = "teknik" # Sayfa durumunu günceller.
-with menu_col3: # Analitik Raporlar butonu.
-    if st.button("📊 ANALİTİK RAPORLAR"): st.session_state.page = "analitik" # Sayfa durumunu günceller.
-with menu_col4: # Canlı Tanı butonu.
-    if st.button("🔬 CANLI TANI MERKEZİ"): st.session_state.page = "tani" # Sayfa durumunu günceller.
+with menu_col1:
+    if st.button("🏠 PROJE VİZYONU"): st.session_state.page = "vizyon" # Butona tıklandığında sayfa durumunu 'vizyon' yapar.
+with menu_col2:
+    if st.button("🧠 TEKNİK ALTYAPI"): st.session_state.page = "teknik" # Butona tıklandığında sayfa durumunu 'teknik' yapar.
+with menu_col3:
+    if st.button("📊 ANALİTİK RAPORLAR"): st.session_state.page = "analitik" # Butona tıklandığında sayfa durumunu 'analitik' yapar.
+with menu_col4:
+    if st.button("🔬 CANLI TANI MERKEZİ"): st.session_state.page = "tani" # Butona tıklandığında sayfa durumunu 'tani' yapar.
 
-if 'page' not in st.session_state: st.session_state.page = "vizyon" # Varsayılan sayfayı belirler.
-st.divider() # Görsel ayırıcı.
+if 'page' not in st.session_state: st.session_state.page = "vizyon" # Uygulama ilk açıldığında varsayılan olarak vizyon sayfasını seçer.
+st.divider() # Menü ile içerik arasına yatay çizgi çeker.
 
-# --- BÖLÜM 1: VİZYON (Madde 1, 2, 3: Problem ve Amaç) ---
-if st.session_state.page == "vizyon": # Vizyon sayfası seçiliyse:
-    st.header("🏥 Bölüm 1: Problemin Tanımı ve Akademik Önemi") # Başlık.
-    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # Kart başlatır.
-    c1, c2 = st.columns([2, 1]) # İçeriği böler.
-    with c1: # Metin alanı.
-        st.subheader("📌 Problemin Tanımı ve Önemi") # Alt başlık.
+# ==============================================================================
+# 4. SAYFA İÇERİKLERİ
+# ==============================================================================
+
+# --- BÖLÜM 1: VİZYON ---
+if st.session_state.page == "vizyon": # Aktif sayfa vizyon ise bu blok çalışır.
+    st.header("🏥 Bölüm 1: Problemin Tanımı ve Akademik Önemi") # Bölüm başlığı.
+    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # İçeriği kart içine alır.
+    c1, c2 = st.columns([2, 1]) # İçeriği %66 ve %33 genişliğinde iki sütuna böler.
+    with c1:
+        st.subheader("📌 Problemin Tanımı") # Alt başlık.
         st.write("""
-        BT görüntülerindeki patolojilerin manuel taranması tıbbi hata riskini artırır. 
-        **Amacımız:** Hekimlerin karar süreçlerini hızlandıran bir karar destek mekanizması sunmaktır.
-        """) # Problem tanımı metni.
-    with c2: # Veri seti alanı.
-        st.subheader("📚 Veri Seti (Madde 4 & 5)") # Alt başlık.
-        st.info("Kaynak: Kaggle CT-Kidney | Sınıf Sayısı: 4") # Veri kaynağı bilgisi.
-    st.markdown('</div>', unsafe_allow_html=True) # Kart kapatır.
+        Günümüzde böbrek hastalıklarının teşhisinde **Bilgisayarlı Tomografi (BT)** kesitlerinin manuel incelenmesi, radyologlar üzerinde ciddi bir bilişsel yük oluşturmaktadır. 
+        Her bir hastaya ait yüzlerce kesit görüntüsünün titizlikle taranması; yorgunluk, dikkat dağınıklığı ve sınırlı zaman gibi faktörlere bağlı olarak **tıbbi hata (diagnostic error)** riskini beraberinde getirmektedir. 
+        Özellikle erken evre kist, taş ve tümör oluşumlarının birbirine benzer görsel doku özellikleri göstermesi, teşhis sürecini karmaşıklaştırmaktadır.
+        
+        **Böbrek Analiz Pro**, Sağlık Bilişimi ve Derin Öğrenme prensiplerini kullanarak bu soruna dijital bir çözüm sunar. Sistem, BT görüntülerini piksel düzeyinde analiz ederek patolojik anomali potansiyeli taşıyan bölgeleri saniyeler içinde sınıflandırır. 
+        Bu çalışma, bir doktorun yerini almaktan ziyade, hekimlerin karar verme süreçlerini hızlandıran ve teşhis doğruluğunu valide eden bir **Klinik Karar Destek Mekanizması** olarak tasarlanmıştır.
+        """) # Metin içeriğini yazar.
+    with c2:
+        st.subheader("📚 Veri Seti") # Veri kaynağı başlığı.
+        st.info("""
+                **Kaynak:** [Kaggle CT-Kidney]
+                
+                **Sınıf:** 4 (Normal, Kist, Taş, Tümör)
+                """) # Veri seti linkini ve bilgilerini mavi bir bilgi kutusunda sunar.
 
-# --- BÖLÜM 2: TEKNİK ALTYAPI (Madde 6, 7, 8, 10, 11: Metodoloji ve Eğitim) ---
-elif st.session_state.page == "teknik": # Teknik sayfa seçiliyse:
-    st.header("🧬 Bölüm 2: Metodoloji ve Eğitim Süreci") # Başlık.
-    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # Kart başlatır.
-    col_arch, col_params = st.columns(2) # Sütunlara böler.
-    with col_arch: # Mimari açıklaması.
-        st.subheader("🧠 Mimari ve Ön İşleme") # Alt başlık.
-        st.write("- Model: MobileNetV2 | Ayrım: %80 Eğitim, %20 Doğrulama") # Teknik detaylar.
-    with col_params: # Hiperparametre açıklaması.
-        st.subheader("⚙️ Hiperparametreler (Madde 10)") # Alt başlık.
-        st.success("- Optimizer: Adam (LR: 0.0001) | Epoch: 25 | Batch: 32") # Parametre listesi.
-    st.divider() # Ayırıcı.
-    st.subheader("📈 Eğitim Sürecinin Açıklanması (Madde 11)") # Eğitim süreci başlığı.
-    st.write("Overfitting'i engellemek için Early Stopping mekanizması kullanılmıştır.") # Teknik açıklama.
-    st.markdown('</div>', unsafe_allow_html=True) # Kart kapatır.
+    # --- KAYNAKÇA (Madde 20) ---
+    st.divider() # Bölüm sonu ayırıcı.
+    st.subheader("📚 Kaynakça ve Literatür Taraması") # Akademik kaynaklar başlığı.
+    st.write("""
+    1.  **Sandler, M., et al. (2018).** *MobileNetV2: Inverted Residuals and Linear Bottlenecks.* [Makale Erişimi](https://arxiv.org/abs/1801.04381)
+    2.  **Kaggle Dataset:** *CT Kidney Dataset: Normal-Cyst-Tumor and Stone.* [Veri Seti Erişimi](https://www.kaggle.com/datasets/nazmul0087/ct-kidney-dataset-normal-cyst-tumor-and-stone)
+    """) # Kullanılan kaynakların listesini yazar.
+    st.markdown('</div>', unsafe_allow_html=True) # Kart yapısını kapatır.
 
-# --- BÖLÜM 3: ANALİTİK RAPORLAR (Madde 12, 13, 14, 15, 16: Metrikler ve Grafikler) ---
-elif st.session_state.page == "analitik": # Analitik sayfa seçiliyse:
-    st.header("📊 Bölüm 3: Performans Analizi ve Grafik Yorumları") # Başlık.
-    m1, m2, m3, m4 = st.columns(4) # Metrikler için 4 sütun.
-    m1.metric("Doğruluk (Acc)", "%68") # Doğruluk değeri.
-    m2.metric("AUC Skoru", "0.94") # AUC değeri.
-    m3.metric("F1-Skoru", "0.65") # F1 değeri.
-    m4.metric("Duyarlılık", "0.88") # Duyarlılık değeri.
+# --- BÖLÜM 2: TEKNİK ALTYAPI ---
+elif st.session_state.page == "teknik": # Aktif sayfa teknik ise bu blok çalışır.
+    st.header("🧬 Bölüm 2: Derin Öğrenme Metodolojisi ve Sistem Mimarisi") # Bölüm başlığı.
+    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # Kart yapısı başlatılır.
+    col_arch, col_prep = st.columns(2) # Eşit genişlikte iki sütun oluşturur.
+    with col_arch:
+        st.subheader("🧠 Model Mimarisi: MobileNetV2") # Model yapısı başlığı.
+        st.write("""
+        Bu projede, Google tarafından geliştirilen ve **Transfer Learning** prensibiyle çalışan **MobileNetV2** mimarisi tercih edilmiştir. 
+        MobileNetV2, 'Inverted Residuals' yapısı sayesinde düşük hesaplama gücüyle yüksek doğruluk oranlarına ulaşabilen optimize bir CNN mimarisidir. 
+        """) # Mimari seçim gerekçesini açıklar.
+    with col_prep:
+        st.subheader("⚙️ Veri Ön İşleme ve Optimizasyon") # Hazırlık süreci başlığı.
+        st.write("""
+        **1. Geometrik Düzenleme:** Görüntüler **224x224** boyutuna sabitlenmiştir.
+        **2. Normalizasyon:** Piksel değerleri **1/255** katsayısıyla **[0, 1]** aralığına çekilmiştir.
+        **3. Adam Optimizer:** Öğrenme hızı **0.0001** olarak set edilmiştir.
+        """) # Teknik ön işleme adımlarını yazar.
+    
+    # --- EĞİTİM DETAYLARI (Madde 7, 10, 11) ---
     st.divider() # Ayırıcı.
-    if os.path.exists('learning_curves.png'): # Grafik dosyasını kontrol eder.
-        st.image('learning_curves.png', caption="Şekil 1: Eğitim Grafikleri", use_container_width=True) # Grafiği basar.
-        st.info("**Yorum (Madde 14):** AUC 0.94 olması sınıfların başarılı ayrıştırıldığını kanıtlarlar.") # Teknik yorum.
-    g1, g2 = st.columns(2) # Alt grafikler için 2 sütun.
-    with g1: # Hata matrisi.
-        if os.path.exists('kidney_confusion_matrix.png'): st.image('kidney_confusion_matrix.png', use_container_width=True) # CM görseli.
-    with g2: # ROC eğrisi.
-        if os.path.exists('kidney_roc_curve.png'): st.image('kidney_roc_curve.png', use_container_width=True) # ROC görseli.
+    st.subheader("📊 Eğitim Parametreleri ve Veri Ayrımı") # Eğitim metrikleri başlığı.
+    st.write("""
+    - **Veri Ayrımı:** %80 Eğitim, %20 Doğrulama (Validation).
+    - **Hiperparametreler:** Batch Size: 32, Epoch: 25, Loss: Categorical Cross-Entropy.
+    - **Eğitim Stratejisi:** 'Early Stopping' kullanılarak overfitting engellenmiş ve en iyi ağırlıklar kaydedilmiştir.
+    """) # Eğitimin nasıl yapıldığını listeler.
+    st.markdown('</div>', unsafe_allow_html=True) # Kart yapısını kapatır.
+
+# --- BÖLÜM 3: ANALİTİK RAPORLAR ---
+elif st.session_state.page == "analitik": # Aktif sayfa analitik ise bu blok çalışır.
+    st.header("📊 Bölüm 3: Model Başarım Metrikleri") # Bölüm başlığı.
+    m1, m2, m3, m4 = st.columns(4) # Skorlar için 4 adet sütun oluşturur.
+    m1.metric("Doğruluk (Acc)", "%68") # Doğruluk oranını gösterir.
+    m2.metric("AUC Skoru", "0.94") # AUC değerini gösterir.
+    m3.metric("F1-Skoru", "0.65") # F1 skorunu gösterir.
+    m4.metric("Duyarlılık", "0.88") # Duyarlılık değerini gösterir.
+    st.divider() # Ayırıcı.
+    if os.path.exists('learning_curves.png'): st.image('learning_curves.png', caption="Eğitim Grafikleri", width=1100) # Kayıtlı eğitim grafiği varsa yükler.
+    g1, g2 = st.columns(2) # Matris ve eğri için iki sütun oluşturur.
+    with g1:
+        if os.path.exists('kidney_confusion_matrix.png'): st.image('kidney_confusion_matrix.png', use_container_width=True) # Karmaşıklık matrisini gösterir.
+    with g2:
+        if os.path.exists('kidney_roc_curve.png'): st.image('kidney_roc_curve.png', use_container_width=True) # ROC eğrisini gösterir.
 
 # --- BÖLÜM 4: CANLI TANI MERKEZİ ---
-elif st.session_state.page == "tani": # Tanı sayfası seçiliyse:
-    st.header("🔬 Bölüm 4: BT Kesiti Canlı Analiz Modülü") # Başlık.
-    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # Kart başlatır.
-    up_file = st.file_uploader("Görüntü yükleyin...", type=["jpg", "png", "jpeg"]) # Dosya yükleyici.
-    if up_file: # Dosya yüklendiyse:
-        col_img, col_analysis = st.columns([1, 1], gap="large") # Görsel ve analiz sütunları.
-        img = Image.open(up_file).convert('RGB') # Resmi açar.
-        with col_img: st.image(img, caption="Yüklenen Kesit", width=420) # Resmi gösterir.
-        with col_analysis: # Analiz alanı.
-            if model is not None: # Model yüklüyse:
-                if st.button("🚀 ANALİZİ BAŞLAT"): # Butona basıldıysa:
-                    with st.spinner('Analiz ediliyor...'): # Yükleme efekti.
-                        p_img = np.array(img.resize((224, 224))).astype('float32') / 255.0 # Ön işleme.
-                        preds = model.predict(np.expand_dims(p_img, axis=0), verbose=0) # Tahmin.
-                        idx = np.argmax(preds) # En yüksek sınıf.
-                        st.markdown(f"### Teşhis: {LABELS[idx]}") # Sonucu basar.
-                        st.plotly_chart(px.bar(x=LABELS, y=preds[0], template="plotly_dark"), use_container_width=True) # Grafik.
-    st.markdown('</div>', unsafe_allow_html=True) # Kart kapatır.
+elif st.session_state.page == "tani": # Aktif sayfa tanı merkezi ise bu blok çalışır.
+    st.header("🔬 Bölüm 4: BT Kesiti Canlı Analiz Modülü") # Bölüm başlığı.
+    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # Kart yapısı.
+    up_file = st.file_uploader("Analiz edilecek BT görüntüsünü yükleyiniz...", type=["jpg", "png", "jpeg"]) # Bilgisayardan resim seçme alanı.
+    if up_file: # Kullanıcı bir dosya seçtiyse:
+        col_img, col_analysis = st.columns([1, 1], gap="large") # Görüntü ve sonucu yan yana koymak için iki sütun.
+        img = Image.open(up_file).convert('RGB') # Yüklenen resmi açar ve RGB formatına çevirir.
+        with col_img:
+            st.subheader("🖼️ Giriş BT Kesiti") # Resim başlığı.
+            st.image(img, caption="Yüklenen Ham Görüntü", width=420) # Kullanıcının yüklediği resmi ekrana basar.
+        with col_analysis:
+            st.subheader("🤖 Analiz Sonuçları") # Sonuç başlığı.
+            if model is not None: # Eğer model dosyası başarıyla okunabildiyse:
+                if st.button("🚀 ANALİZİ BAŞLAT"): # Analiz butonuna basıldığında:
+                    with st.spinner('Yapay Zeka Taraması Yapılıyor...'): # İşlem bitene kadar dönen bir yükleme simgesi çıkarır.
+                        p_img = np.array(img.resize((224, 224))).astype('float32') / 255.0 # Resmi modele uygun boyuta getirip normalize eder.
+                        p_img = np.expand_dims(p_img, axis=0) # Tek bir resim olduğu için boyutunu (1, 224, 224, 3) yapar.
+                        preds = model.predict(p_img, verbose=0) # Modelden olasılık tahminlerini alır.
+                        idx = np.argmax(preds) # En yüksek olasılığa sahip sınıfın numarasını (indeks) seçer.
+                        res_color = "#238636" if idx == 1 else "#da3633" # Normal (1) ise yeşil, hastalık varsa kırmızı renk kodu belirler.
+                        st.markdown(f"""
+                            <div style="border-left: 10px solid {res_color}; padding: 20px; background-color: #1f2937; border-radius: 12px; margin-top:0;">
+                                <h2 style="margin:0; color: white !important;">Teşhis: {LABELS[idx]}</h2>
+                                <h3 style="margin:0; color: #8b949e !important;">Güven Oranı: %{np.max(preds)*100:.1f}</h3>
+                            </div>
+                        """, unsafe_allow_html=True) # Teşhisi ve güven oranını şık bir kutu içinde gösterir.
+                        df_p = pd.DataFrame({'Patoloji': LABELS, 'Olasılık': preds[0]}) # Olasılıkları grafiğe dökmek için tablo yapar.
+                        fig = px.bar(df_p, x='Patoloji', y='Olasılık', color='Patoloji', height=300, template="plotly_dark") # Bar grafiği hazırlar.
+                        fig.update_layout(showlegend=False, margin=dict(l=20, r=20, t=10, b=10)) # Grafiğin kenar boşluklarını ayarlar.
+                        st.plotly_chart(fig, use_container_width=True) # Hazırlanan interaktif grafiği sayfaya ekler.
+    st.markdown('</div>', unsafe_allow_html=True) # Kart yapısını kapatır.
 
-# 5. SONUÇ VE KAYNAKÇA (Madde 20: Genel Bütünlük)
-st.divider() # Ayırıcı.
-st.subheader("🏁 Sonuç ve Kaynakça") # Kapanış başlığı.
-st.write("Bu çalışma derin öğrenmenin teşhis süreçlerindeki gücünü valide etmektedir.") # Sonuç metni.
-st.markdown("<div style='text-align: center; color: #8b949e;'><b>Geliştirici:</b> Oğuzhan Dursun - 220706037 | <b>Ders:</b> Sağlık Bilişimi 2026</div>", unsafe_allow_html=True) # İmza alanı.
+# 5. ALT BİLGİ (Footer)
+st.divider() # Sayfa sonu çizgisi.
+st.markdown(f"<div style='text-align: center; color: #8b949e;'><b>Geliştirici:</b> Oğuzhan Dursun - 220706037 | <b>Ders:</b> Yapay Zeka ile Sağlık Bilişimi Vize Ödevi - 2026</div>", unsafe_allow_html=True) # Geliştirici ve ders bilgisini merkeze yazar.

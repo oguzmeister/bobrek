@@ -147,14 +147,36 @@ if st.session_state.page == "vizyon":
         st.markdown('</div>', unsafe_allow_html=True) # Kart tasarımını kapatır.
 
 # --- BÖLÜM 2: TEKNİK ALTYAPI ---
+# --- BÖLÜM 2: TEKNİK ALTYAPI (Akademik ve Mühendislik Odaklı) ---
 elif st.session_state.page == "teknik":
-    st.header("🧬 Bölüm 2: Mühendislik ve Model Altyapısı")
-    st.markdown('<div class="medical-card">', unsafe_allow_html=True)
-    # Modelin teknik mimarisi hakkında özet bilgiler sunar.
-    st.write("- **Model:** MobileNetV2 (Transfer Learning mimarisi kullanıldı).")
-    st.write("- **Ön İşleme:** 1/255 Normalizasyon (Pikselleri standartlaştırır) & 224x224 Resize.")
-    st.write("- **Optimizasyon:** Adam Optimizer (Öğrenme hızı: 0.0001).")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.header("🧬 Bölüm 2: Derin Öğrenme Metodolojisi ve Sistem Mimarisi")
+    st.markdown('<div class="medical-card">', unsafe_allow_html=True) # Kart yapısını başlatır.
+    
+    col_arch, col_prep = st.columns(2) # Mimari ve Ön İşleme için yan yana iki sütun açar.
+    
+    with col_arch:
+        st.subheader("🧠 Model Mimarisi: MobileNetV2")
+        # st.write: Mimari seçiminin neden yapıldığını teknik gerekçeleriyle açıklar.
+        st.write("""
+        Bu projede, Google tarafından geliştirilen ve **Transfer Learning (Transferli Öğrenme)** prensibiyle çalışan **MobileNetV2** mimarisi tercih edilmiştir. 
+        MobileNetV2, 'Inverted Residuals' ve 'Linear Bottlenecks' yapıları sayesinde düşük hesaplama gücüyle (CPU/Mobil uyumlu) yüksek doğruluk oranlarına ulaşabilen optimize bir evrişimli sinir ağıdır (CNN). 
+        
+        **Neden Seçildi?**
+        - ImageNet veri setiyle önceden eğitilmiş ağırlıklar sayesinde, tıbbi görüntülerdeki temel doku özelliklerini saniyeler içinde tanıyabilmektedir.
+        - Bellek verimliliği, klinik ortamlardaki düşük donanımlı cihazlarda bile gerçek zamanlı analiz yapılmasına imkan tanır.
+        """)
+        
+    with col_prep:
+        st.subheader("⚙️ Veri Ön İşleme ve Optimizasyon")
+        # st.write: Verinin modele girmeden önceki matematiksel hazırlık sürecini açıklar.
+        st.write("""
+        **1. Geometrik Düzenleme (Resizing):** Ham BT görüntüleri, modelin giriş katmanıyla uyumlu olması adına **224x224** piksel boyutuna sabitlenmiştir.
+        
+        **2. Piksel Normalizasyonu:** Görüntülerdeki 0-255 arasındaki RGB değerleri, gradyan inişinin (gradient descent) daha hızlı yakınsaması için **1/255** katsayısıyla **[0, 1]** aralığına normalize edilmiştir.
+        
+        **3. Adam Optimizer:** Eğitim aşamasında adaptif öğrenme hızı sağlayan **Adam** algoritması kullanılmıştır. Öğrenme hızı (Learning Rate), modelin ağırlıklarını hassas bir şekilde güncelleyebilmesi için **0.0001** (1e-4) olarak set edilmiştir.
+        """)
+    st.markdown('</div>', unsafe_allow_html=True) # Kart yapısını kapatır.
 
 # --- BÖLÜM 3: ANALİTİK RAPORLAR (Metrikler ve Grafikler) ---
 elif st.session_state.page == "analitik":
